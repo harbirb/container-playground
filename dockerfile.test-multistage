@@ -1,0 +1,52 @@
+# A simple Dockerfile that builds and runs a Go application.
+# move to the directory containing the Dockerfile
+# docker build -f dockerfile.test-multistage -t go-hello .
+
+
+FROM golang:1.25 AS build
+
+WORKDIR /src
+
+COPY <<EOF main.go
+package main
+
+import "fmt"
+
+func main() {
+  fmt.Println("hello, world")
+}
+EOF
+
+RUN go build -o /bin/hello ./main.go
+
+CMD ["/bin/hello"]
+
+# The above image is huge ~1.3GB it includes the entire Go toolchain.
+
+# To create a minimal image, we can use a multi-stage build to copy only the
+# compiled binary into a scratch image.
+
+# The following lines produce a much smaller image ~4MB.
+# Comment out the above lines and uncomment the following lines to create a minimal image:
+
+# FROM golang:1.25 AS build
+
+# WORKDIR /src
+
+# COPY <<EOF main.go
+# package main
+
+# import "fmt"
+
+# func main() {
+#   fmt.Println("hello, world")
+# }
+# EOF
+
+# RUN go build -o /bin/hello ./main.go
+
+# FROM scratch
+# COPY --from=build /bin/hello /bin/hello
+# CMD ["/bin/hello"]
+
+
