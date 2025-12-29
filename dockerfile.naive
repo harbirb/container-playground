@@ -1,0 +1,29 @@
+# Naive Dockerfile to install samtools from source
+# 857MB image using naive approach (to be compared with optimized Dockerfile)
+
+# use latest Ubuntu base image
+FROM ubuntu:latest
+
+# install dependencies
+RUN <<EOF
+apt-get update
+apt-get install -y build-essential \
+    libbz2-dev \
+    liblzma-dev \
+    libncurses5-dev \
+    wget \
+    zlib1g-dev \
+EOF
+
+# download samtools
+ADD https://github.com/samtools/samtools/releases/download/1.23/samtools-1.23.tar.bz2 /samtools-1.23.tar.bz2
+
+# install samtools
+RUN tar -oxjf samtools-1.23.tar.bz2 && \
+    cd samtools-1.23 && \
+    ./configure && \
+    make && \
+    make install
+
+# verify installation
+CMD ["samtools", "--version"]
