@@ -1,0 +1,49 @@
+# Optimized Dockerfile to install samtools from source
+# 28MB image using optimized approach 
+
+# use latest Ubuntu base image
+FROM alpine:latest AS builder
+
+# install dependencies
+RUN <<EOF
+apk update
+apk add \
+    build-base \
+    bzip2-dev \
+    ncurses-dev \
+    wget \
+    xz-dev \
+    zlib-dev
+EOF
+
+# download samtools
+ADD https://github.com/samtools/samtools/releases/download/1.23/samtools-1.23.tar.bz2 /samtools-1.23.tar.bz2
+
+# install samtools
+RUN tar -oxjf samtools-1.23.tar.bz2 && \
+    cd samtools-1.23 && \
+    ./configure --prefix=/temp/samtools && \
+    make && \
+    make install
+
+# create minimal image
+FROM alpine:latest
+
+# install missing dependencies (found using ldd)
+RUN apk add --no-cache \
+    libbz2 \
+    ncurses \
+    xz-libs \
+    zlib
+
+# copy from builder install location
+COPY --from=builder /temp/samtools /usr/share/samtools
+
+# create symlink so samtools is in PATH
+# RUN ln -s /usr/share/samtools/bin/samtools /usr/bin/samtools
+ENV PATH="/usr/share/samtools/bin:${PATH}"
+
+RUN which samtools
+RUN ldd /usr/bin/samtools
+RUN samtools --version
+# verify installation
