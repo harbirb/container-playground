@@ -1,0 +1,55 @@
+# Distroless Dockerfile for samtools
+# Strategy: Build dynamically on Debian, deploy to Distroless
+# Challenge: Distroless has glibc but lacks libncurses/libz, so we must manually copy them.
+
+# --- Stage 1: Builder (Debian) ---
+FROM debian:bookworm-slim AS builder
+
+# 1. Install Build Dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libncurses6 \
+    libncurses-dev \
+    libbz2-dev \
+    liblzma-dev \
+    zlib1g-dev \
+    wget \
+    ca-certificates
+
+# 2. Download & Compile Samtools
+WORKDIR /build
+RUN wget https://github.com/samtools/samtools/releases/download/1.23/samtools-1.23.tar.bz2 \
+    && tar -xjvf samtools-1.23.tar.bz2 \
+    && cd samtools-1.23 \
+    && ./configure --prefix=/usr/local \
+    && make \
+    && make install
+
+# 3. Locate Shared Libraries (The Hard Part)
+# We use a wildcard '*-linux-gnu' to handle both x86_64 (Intel) and aarch64 (Apple Silicon).
+WORKDIR /dist
+RUN mkdir -p /dist/lib \
+    && cp /usr/local/bin/samtools /dist/samtools \
+    && cp /lib/*-linux-gnu/libncursesw.so.6 /dist/lib/ \
+    && cp /lib/*-linux-gnu/libtinfo.so.6 /dist/lib/ \
+    && cp /lib/*-linux-gnu/libz.so.1 /dist/lib/ \
+    && cp /lib/*-linux-gnu/libbz2.so.1.0 /dist/lib/ \
+    && cp /lib/*-linux-gnu/liblzma.so.5 /dist/lib/
+
+# --- Stage 2: Runtime (Distroless) ---
+FROM gcr.io/distroless/base-debian12
+
+# 1. Copy the Binary
+COPY --from=builder /dist/samtools /usr/bin/samtools
+
+# 2. Copy the Libraries (Manual Dependency Injection)
+# We copy them to /lib/ which is a standard search path for the dynamic linker.
+COPY --from=builder /dist/lib/libncursesw.so.6 /lib/
+COPY --from=builder /dist/lib/libtinfo.so.6 /lib/
+COPY --from=builder /dist/lib/libz.so.1 /lib/
+COPY --from=builder /dist/lib/libbz2.so.1.0 /lib/
+COPY --from=builder /dist/lib/liblzma.so.5 /lib/
+
+# 3. Entrypoint
+ENTRYPOINT ["/usr/bin/samtools"]
+CMD ["--version"]

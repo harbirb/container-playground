@@ -18,3 +18,9 @@ Read "Best practices for writing dockerfiles".
 - musl is one of the reasons why alpine can be so small (5MB)
 - clear package cache to save even more space
 - One Layer rule: each RUN command is a new layer that can be cached. Must chain some commands (ex. apk update and apk add pkg) (called cache busting)
+
+- Explicitly set a non-root user in dockerfile (containers run as root user by default)
+- UID != 0 means its a non-root user.
+- Distroless is even better than non-root user (cannot run code or read files since there is no shell)
+  - Distroless also runs as non-root by default in many cases
+- Distroless con: must copy over all libraries manually
