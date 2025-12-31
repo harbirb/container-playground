@@ -44,6 +44,5 @@ COPY --from=builder /temp/samtools /usr/share/samtools
 ENV PATH="/usr/share/samtools/bin:${PATH}"
 
 RUN which samtools
-RUN ldd /usr/bin/samtools
 RUN samtools --version
 # verify installation
