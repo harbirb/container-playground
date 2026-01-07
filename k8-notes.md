@@ -1,0 +1,17 @@
+- kind is just kubernetes in docker
+- kubernetes runs on **nodes** (vms or servers)
+- An instance of your service aka. the smallest deployable unit is called a **pod**
+  - can be 1 or more containers (ex. 1 app container, or a web server + logger)
+- kind makes it so that the node is just another container on your machine
+- "kind" handles the cluster infra, whereas kubectl handles workloads and config inside the cluster
+- "kind create cluster --name clustername" (to make the container in which k8s runs)
+- "kubectl" to interact with the kubernetes api (talk to control node)
+- build an image. Upload it to kind via "kind load docker-image my-app:v1 --name cluster-name"
+- call the k8s api to run it via: "kubectl run podname --image=my-app:v1"
+  - this will start a **pod** (a container instance of your uploaded image)
+  - view logs using "kubectl logs podname"
+  - close your pod using "kubectl delete pod podname"
+- view your nodes and pods using "kubectl get nodes" or "kubectl get pods"
+
+- k8s pulls from internet by default. Use a tag like :v1 or --image-pull-policy=Never when doing kubectl run
+- pods have an always restart default policy. Use --restart=Never for one-off tasks
