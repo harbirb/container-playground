@@ -1,17 +1,77 @@
-- kind is just kubernetes in docker
-- kubernetes runs on **nodes** (vms or servers)
-- An instance of your service aka. the smallest deployable unit is called a **pod**
-  - can be 1 or more containers (ex. 1 app container, or a web server + logger)
-- kind makes it so that the node is just another container on your machine
-- "kind" handles the cluster infra, whereas kubectl handles workloads and config inside the cluster
-- "kind create cluster --name clustername" (to make the container in which k8s runs)
-- "kubectl" to interact with the kubernetes api (talk to control node)
-- build an image. Upload it to kind via "kind load docker-image my-app:v1 --name cluster-name"
-- call the k8s api to run it via: "kubectl run podname --image=my-app:v1"
-  - this will start a **pod** (a container instance of your uploaded image)
-  - view logs using "kubectl logs podname"
-  - close your pod using "kubectl delete pod podname"
-- view your nodes and pods using "kubectl get nodes" or "kubectl get pods"
+# Kubernetes Notes
 
-- k8s pulls from internet by default. Use a tag like :v1 or --image-pull-policy=Never when doing kubectl run
-- pods have an always restart default policy. Use --restart=Never for one-off tasks
+## Core Concepts
+
+- **Kind**: Kubernetes IN Docker. It runs Kubernetes "nodes" as Docker containers on your local machine.
+- **Node**: A worker machine (VM or physical server) where Kubernetes runs your workloads.
+- **Pod**: The smallest deployable unit in Kubernetes.
+  - Can contain one or more containers (e.g., a main app container + a sidecar logger).
+  - In Kind, the "node" is just another container running on your host.
+- **Roles**:
+  - `kind`: Handles cluster infrastructure (spinning up nodes).
+  - `kubectl`: Handles workloads and configuration inside the cluster (talking to the API).
+
+## Basic Workflow
+
+1. **Create Cluster**:
+   ```bash
+   kind create cluster --name <cluster-name>
+   ```
+2. **Interact with API**: Use `kubectl` to talk to the control plane.
+3. **Load Images**:
+   Build your image locally, then load it into the Kind cluster so it's available to the nodes:
+   ```bash
+   kind load docker-image my-app:v1 --name <cluster-name>
+   ```
+4. **Run a Pod**:
+   Imperatively start a pod (instance of your image):
+   ```bash
+   kubectl run <pod-name> --image=my-app:v1
+   ```
+5. **Manage Pods**:
+   - **View Logs**: `kubectl logs <pod-name>`
+   - **Delete Pod**: `kubectl delete pod <pod-name>`
+   - **List Resources**: `kubectl get nodes` or `kubectl get pods`
+
+## Important Configuration Details
+
+- **Image Pull Policy**: Kubernetes tries to pull images from the internet (Docker Hub) by default.
+  - For local development with Kind, use a specific tag (e.g., `:v1`) or set:
+    ```yaml
+    imagePullPolicy: Never
+    ```
+- **Restart Policy**: Pods default to `Always` restarting.
+  - For one-off tasks (like jobs), use `--restart=Never`.
+    - (I forgot to use this for my hello-world pod and it silently crashed and restarted for 48 hours in the background. Ouch.)
+
+## Deep Dive: Entrypoints & Shells
+
+**Question:** When creating a pod, the entrypoint command does not execute within a shell. How is that possible?
+
+**Answer:**
+
+- At the lowest level, Linux exposes a syscall `execve()` which runs a binary directly.
+- Shells (like `bash` or `sh`) are just convenience programs that parse text and call `execve()` for you.
+- The container runtime calls `execve()` directly with your provided command and arguments, bypassing the shell entirely.
+- **Implication:** You cannot use shell features like `&&`, `|`, or `>` unless you explicitly invoke a shell (e.g., `["/bin/sh", "-c", "..."]`).
+
+## Quick Start: Running a Pod
+
+Step-by-step guide to running the `samtools` pod.
+
+```bash
+# 1. Build your image
+docker build -f dockerfile.optimizedmusl . -t samtools-final
+
+# 2. Upload it to your cluster (default cluster name is 'kind')
+kind load docker-image samtools-final
+
+# 3. Create the pod specified by your config
+kubectl apply -f pod.yaml
+
+# 4. Observe the pod logs
+kubectl logs samtools-pod
+
+# 5. Delete the pod (cleanup)
+kubectl delete pod samtools-pod
+```

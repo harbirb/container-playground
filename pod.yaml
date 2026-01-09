@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: samtools-pod
+spec:
+  containers:
+    - name: samtools-container
+      image: samtools-final
+      # Important for local images so K8s doesn't try to pull from Docker Hub
+      imagePullPolicy: Never
+      command: ["samtools", "--help"]
+  restartPolicy: OnFailure
