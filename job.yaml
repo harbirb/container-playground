@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: samtools-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: samtools-container
+          image: samtools-final
+          # Important for local images so K8s doesn't try to pull from Docker Hub
+          imagePullPolicy: Never
+          command: ["samtools", "--invalid-argument-to-crash"]
+      restartPolicy: OnFailure
+  backoffLimit: 4

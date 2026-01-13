@@ -75,3 +75,20 @@ kubectl logs samtools-pod
 # 5. Delete the pod (cleanup)
 kubectl delete pod samtools-pod
 ```
+
+## Jobs & Resilience
+
+- A job is a one-off task that runs to completion and stops.
+- In bio, we rarely run services (long-running servers). We run "jobs" (start, process data, finish).
+- If a job fails, it will be retried automatically (configure retries with `backoffLimit`).
+
+```bash
+# Create the job specified by your config
+kubectl apply -f job.yaml
+
+# Get job status
+kubectl describe job samtools-job
+
+# Delete the job (cleanup)
+kubectl delete job samtools-job
+```
