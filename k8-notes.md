@@ -92,3 +92,41 @@ kubectl describe job samtools-job
 # Delete the job (cleanup)
 kubectl delete job samtools-job
 ```
+
+## Persistence (PVCs)
+
+- When a container finishes, its filesystem is destroyed. To persist data, we use PVs and PVCs.
+- PVs are like disks, PVCs are like files, provisioned by Kubernetes.
+- Pods can mount PVCs at a path and write to it like a file.
+
+```bash
+# Create the PVC specified by your config
+kubectl apply -f pvc.yaml
+
+# Create the job specified by your config
+kubectl apply -f job-persist.yaml
+
+# Delete the job (cleanup)
+kubectl delete job samtools-job
+
+# Verify data persistence.
+# Create a debugging pod that mounts the same PVC. Replace YOUR_PVC_NAME.
+# Run it and check if `/data/output.txt` exists.
+kubectl run pvc-inspector --image=busybox -it --rm --restart=Never \
+  --overrides='
+  {
+    "spec": {
+      "containers": [
+        {
+          "name": "inspector",
+          "image": "busybox",
+          "args": ["sh"],
+          "stdin": true,
+          "tty": true,
+          "volumeMounts": [{ "mountPath": "/data", "name": "my-vol" }]
+        }
+      ],
+      "volumes": [{ "name": "my-vol", "persistentVolumeClaim": { "claimName": "YOUR_PVC_NAME" } }]
+    }
+  }'
+```

@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: samtools-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: samtools-container
+          image: samtools-final
+          # Important for local images so K8s doesn't try to pull from Docker Hub
+          imagePullPolicy: Never
+          command: ["/bin/sh", "-c"]
+          args:
+            [
+              "date >> /data/output.txt && echo 'Wrote to file: ' && cat /data/output.txt",
+            ]
+          volumeMounts:
+            - name: samtools-data
+              mountPath: /data
+      volumes:
+        - name: samtools-data
+          persistentVolumeClaim:
+            claimName: samtools-pvc
+      restartPolicy: OnFailure
+  backoffLimit: 4
