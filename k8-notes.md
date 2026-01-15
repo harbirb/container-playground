@@ -130,3 +130,24 @@ kubectl run pvc-inspector --image=busybox -it --rm --restart=Never \
     }
   }'
 ```
+
+## Mini-Pipeline (Manual)
+
+- We can chain jobs together manually by mounting them to the same PVC.
+- Create PVC. Run Job 1 (Download data to PVC). Run Job 2 (Process data in PVC).
+- By saving intermediate data in PVCs, we create a checkpoint. If step 2 fails, we can restart from the last checkpoint in our pipeline.
+- We manually performed the role of a workflow engine (managing data handoff between containers).
+
+```bash
+# Create the PVC specified by your config
+kubectl apply -f pvc.yaml
+
+# Run job 1
+kubectl apply -f job-fetch.yaml
+
+# Run job 2
+kubectl apply -f job-process.yaml
+
+# Delete the job (cleanup)
+kubectl delete jobs samtools-fetch-job samtools-process-job
+```
